@@ -57,6 +57,14 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
   const [categoryId, setCategoryId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // 格式化日期为 YYYY-MM-DD（本地时区）
+  const formatDateLocal = (date: Date) => {
+    const year = date.getFullYear()
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   useEffect(() => {
     if (todo) {
       setTitle(todo.title)
@@ -65,7 +73,7 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
       setIsUrgent(todo.priority === 'URGENT')
       if (todo.dueDate) {
         const date = new Date(todo.dueDate)
-        setDueDate(date.toISOString().split('T')[0])
+        setDueDate(formatDateLocal(date))
         const hours = date.getHours().toString().padStart(2, '0')
         const minutes = date.getMinutes().toString().padStart(2, '0')
         setDueTime(minutes === '00' ? `${hours}:00` : '')
@@ -79,7 +87,7 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
       setDescription('')
       setPriority('MEDIUM')
       setIsUrgent(false)
-      setDueDate(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+      setDueDate(selectedDate ? formatDateLocal(selectedDate) : formatDateLocal(new Date()))
       setDueTime('')
       setCategoryId('')
     }
