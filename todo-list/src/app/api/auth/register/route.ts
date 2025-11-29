@@ -4,23 +4,37 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password, name } = await request.json()
+    const { username, password } = await request.json()
 
-    if (!email || !password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: '邮箱和密码不能为空' },
+        { error: '用户名和密码不能为空' },
         { status: 400 }
       )
     }
 
-    // 检查邮箱是否已存在
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
+    if (username.length < 2 || username.length > 20) {
+      return NextResponse.json(
+        { error: '用户名长度需要在 2-20 个字符之间' },
+        { status: 400 }
+      )
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: '密码长度至少 6 位' },
+        { status: 400 }
+      )
+    }
+
+    // 检查用户名是否已存在
+    const existingUser = await prisma.user.findFirst({
+      where: { name: username }
     })
 
     if (existingUser) {
       return NextResponse.json(
-        { error: '该邮箱已被注册' },
+        { error: '该用户名已被注册' },
         { status: 400 }
       )
     }
@@ -31,9 +45,8 @@ export async function POST(request: NextRequest) {
     // 创建用户
     const user = await prisma.user.create({
       data: {
-        email,
+        name: username,
         password: hashedPassword,
-        name: name || email.split('@')[0],
         points: 100 // 初始积分
       }
     })
@@ -54,7 +67,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       user: {
         id: user.id,
-        email: user.email,
         name: user.name,
         isGuest: false,
         points: user.points

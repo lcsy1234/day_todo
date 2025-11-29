@@ -4,18 +4,18 @@ import bcrypt from 'bcryptjs'
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json()
+    const { username, password } = await request.json()
 
-    if (!email || !password) {
+    if (!username || !password) {
       return NextResponse.json(
-        { error: '邮箱和密码不能为空' },
+        { error: '用户名和密码不能为空' },
         { status: 400 }
       )
     }
 
-    // 查找用户
-    const user = await prisma.user.findUnique({
-      where: { email },
+    // 查找用户（通过用户名）
+    const user = await prisma.user.findFirst({
+      where: { name: username },
       include: {
         todos: {
           orderBy: { createdAt: 'desc' }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     if (!user || !user.password) {
       return NextResponse.json(
-        { error: '邮箱或密码错误' },
+        { error: '用户名或密码错误' },
         { status: 401 }
       )
     }
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     if (!isValid) {
       return NextResponse.json(
-        { error: '邮箱或密码错误' },
+        { error: '用户名或密码错误' },
         { status: 401 }
       )
     }
@@ -44,7 +44,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       user: {
         id: user.id,
-        email: user.email,
         name: user.name,
         isGuest: false,
         points: user.points
