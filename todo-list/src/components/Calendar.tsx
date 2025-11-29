@@ -76,6 +76,16 @@ export default function Calendar({ onSelectDate, onAddTask }: CalendarProps) {
     return selectedDate?.toDateString() === date.toDateString()
   }
 
+  const isPast = (date: Date) => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const checkDate = new Date(date)
+    checkDate.setHours(0, 0, 0, 0)
+    return checkDate < today
+  }
+
+  const canAddTask = selectedDate ? !isPast(selectedDate) : false
+
   return (
     <div className="bg-white rounded-3xl shadow-lg shadow-orange-100/50 p-6">
       {/* 月份导航 */}
@@ -117,12 +127,14 @@ export default function Calendar({ onSelectDate, onAddTask }: CalendarProps) {
                   'w-full h-full rounded-xl flex flex-col items-center justify-center transition-all',
                   isToday(date) && !isSelected(date) && 'bg-orange-100',
                   isSelected(date) && 'bg-gradient-to-br from-orange-400 to-orange-500 text-white shadow-lg',
-                  !isToday(date) && !isSelected(date) && 'hover:bg-orange-50'
+                  isPast(date) && !isSelected(date) && 'opacity-50',
+                  !isToday(date) && !isSelected(date) && !isPast(date) && 'hover:bg-orange-50',
+                  isPast(date) && !isSelected(date) && 'hover:bg-gray-100'
                 )}
               >
                 <span className={cn(
                   'text-sm font-medium',
-                  isSelected(date) ? 'text-white' : isToday(date) ? 'text-orange-600' : 'text-gray-700'
+                  isSelected(date) ? 'text-white' : isToday(date) ? 'text-orange-600' : isPast(date) ? 'text-gray-400' : 'text-gray-700'
                 )}>
                   {date.getDate()}
                 </span>
@@ -142,13 +154,16 @@ export default function Calendar({ onSelectDate, onAddTask }: CalendarProps) {
       {/* 添加任务按钮 */}
       <div className="mt-6">
         <Button
-          onClick={() => selectedDate && onAddTask(selectedDate)}
+          onClick={() => selectedDate && canAddTask && onAddTask(selectedDate)}
           className="w-full"
           size="lg"
-          disabled={!selectedDate}
+          disabled={!selectedDate || !canAddTask}
         >
-          添加任务
+          {selectedDate && isPast(selectedDate) ? '查看历史任务' : '添加任务'}
         </Button>
+        {selectedDate && isPast(selectedDate) && (
+          <p className="text-center text-sm text-gray-400 mt-2">过去的日期无法添加新任务</p>
+        )}
       </div>
 
       {/* 游客模式入口 */}

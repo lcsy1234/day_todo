@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { User, FileText, Calendar, Flag } from 'lucide-react'
+import { User, FileText, Calendar, Flag, Clock } from 'lucide-react'
 import Modal from './ui/Modal'
 import Input from './ui/Input'
 import Button from './ui/Button'
@@ -22,6 +22,29 @@ const priorityOptions: { value: Priority; label: string; color: string }[] = [
   { value: 'URGENT', label: '紧急', color: 'bg-red-100 text-red-600' }
 ]
 
+// 时间选项
+const timeOptions = [
+  { value: '', label: '不设置时间' },
+  { value: '06:00', label: '上午 6:00' },
+  { value: '07:00', label: '上午 7:00' },
+  { value: '08:00', label: '上午 8:00' },
+  { value: '09:00', label: '上午 9:00' },
+  { value: '10:00', label: '上午 10:00' },
+  { value: '11:00', label: '上午 11:00' },
+  { value: '12:00', label: '中午 12:00' },
+  { value: '13:00', label: '下午 1:00' },
+  { value: '14:00', label: '下午 2:00' },
+  { value: '15:00', label: '下午 3:00' },
+  { value: '16:00', label: '下午 4:00' },
+  { value: '17:00', label: '下午 5:00' },
+  { value: '18:00', label: '下午 6:00' },
+  { value: '19:00', label: '晚上 7:00' },
+  { value: '20:00', label: '晚上 8:00' },
+  { value: '21:00', label: '晚上 9:00' },
+  { value: '22:00', label: '晚上 10:00' },
+  { value: '23:00', label: '晚上 11:00' }
+]
+
 export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: TodoEditorProps) {
   const { user, addTodo, updateTodo, categories } = useStore()
   
@@ -30,6 +53,7 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
   const [priority, setPriority] = useState<Priority>('MEDIUM')
   const [isUrgent, setIsUrgent] = useState(false)
   const [dueDate, setDueDate] = useState('')
+  const [dueTime, setDueTime] = useState('')
   const [categoryId, setCategoryId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -39,14 +63,24 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
       setDescription(todo.description || '')
       setPriority(todo.priority)
       setIsUrgent(todo.priority === 'URGENT')
-      setDueDate(todo.dueDate ? todo.dueDate.split('T')[0] : '')
+      if (todo.dueDate) {
+        const date = new Date(todo.dueDate)
+        setDueDate(date.toISOString().split('T')[0])
+        const hours = date.getHours().toString().padStart(2, '0')
+        const minutes = date.getMinutes().toString().padStart(2, '0')
+        setDueTime(minutes === '00' ? `${hours}:00` : '')
+      } else {
+        setDueDate('')
+        setDueTime('')
+      }
       setCategoryId(todo.categoryId || '')
     } else {
       setTitle('')
       setDescription('')
       setPriority('MEDIUM')
       setIsUrgent(false)
-      setDueDate(selectedDate ? selectedDate.toISOString().split('T')[0] : '')
+      setDueDate(selectedDate ? selectedDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0])
+      setDueTime('')
       setCategoryId('')
     }
   }, [todo, selectedDate, isOpen])
@@ -58,6 +92,16 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
     setIsLoading(true)
     
     const finalPriority = isUrgent ? 'URGENT' : priority
+    
+    // 组合日期和时间
+    let finalDueDate: string | null = null
+    if (dueDate) {
+      if (dueTime) {
+        finalDueDate = `${dueDate}T${dueTime}:00`
+      } else {
+        finalDueDate = `${dueDate}T00:00:00`
+      }
+    }
 
     try {
       if (todo) {
@@ -69,7 +113,7 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
             title,
             description,
             priority: finalPriority,
-            dueDate: dueDate || null,
+            dueDate: finalDueDate,
             categoryId: categoryId || null
           })
         })
@@ -88,7 +132,7 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
             title,
             description,
             priority: finalPriority,
-            dueDate: dueDate || null,
+            dueDate: finalDueDate,
             categoryId: categoryId || null,
             userId: user.id
           })
@@ -156,10 +200,10 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
           </div>
         )}
 
-        {/* 时间选择器 */}
+        {/* 日期选择器 */}
         <div className="flex items-center gap-2 text-gray-600">
           <Calendar className="w-5 h-5" />
-          <span>时间选择器</span>
+          <span>选择日期</span>
         </div>
 
         <input
@@ -168,6 +212,24 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
           onChange={(e) => setDueDate(e.target.value)}
           className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
         />
+
+        {/* 时间选择器 */}
+        <div className="flex items-center gap-2 text-gray-600">
+          <Clock className="w-5 h-5" />
+          <span>选择时间</span>
+        </div>
+
+        <select
+          value={dueTime}
+          onChange={(e) => setDueTime(e.target.value)}
+          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 bg-white"
+        >
+          {timeOptions.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
 
         {/* 分类选择 */}
         {categories.length > 0 && (
@@ -196,7 +258,7 @@ export default function TodoEditor({ isOpen, onClose, todo, selectedDate }: Todo
           size="lg"
           disabled={isLoading || !title.trim()}
         >
-          {isLoading ? '保存中...' : '时间选择'}
+          {isLoading ? '保存中...' : '保存任务'}
         </Button>
       </form>
     </Modal>
