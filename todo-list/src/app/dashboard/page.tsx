@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Plus, Flag, Clock, ChevronUp, ChevronDown, Check, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Flag, Clock, ChevronUp, ChevronDown, Check, Trash2, Edit2, Tag, X } from 'lucide-react'
 import TodoEditor from '@/components/TodoEditor'
+import CategoryManager from '@/components/CategoryManager'
 import Button from '@/components/ui/Button'
 import { cn } from '@/lib/utils'
-import { useStore, Todo, Priority } from '@/store/useStore'
+import { useStore, Todo, Priority, Category } from '@/store/useStore'
 
 const priorityOrder: Record<Priority, number> = {
   URGENT: 4,
@@ -29,17 +30,22 @@ const priorityLabels: Record<Priority, string> = {
 }
 
 export default function DashboardPage() {
-  const { user, todos, setTodos, toggleTodo, deleteTodo } = useStore()
+  const { user, todos, setTodos, toggleTodo, deleteTodo, categories, setCategories } = useStore()
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingTodo, setEditingTodo] = useState<Todo | null>(null)
   
   // 排序状态
   const [prioritySortOrder, setPrioritySortOrder] = useState<'asc' | 'desc'>('desc')
   const [timeSortOrder, setTimeSortOrder] = useState<'asc' | 'desc'>('asc')
+  
+  // 分类筛选状态
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null)
+  const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false)
 
   useEffect(() => {
     if (user) {
       fetchTodos()
+      fetchCategories()
     }
   }, [user])
 
@@ -57,7 +63,21 @@ export default function DashboardPage() {
     }
   }
 
-  // 只显示今天的任务
+  const fetchCategories = async () => {
+    if (!user) return
+    
+    try {
+      const res = await fetch(`/api/categories?userId=${user.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setCategories(data.categories)
+      }
+    } catch (error) {
+      console.error('Fetch categories error:', error)
+    }
+  }
+
+  // 只显示今天的任务（支持分类筛选）
   const todayTodos = useMemo(() => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -67,9 +87,21 @@ export default function DashboardPage() {
     return todos.filter(todo => {
       if (!todo.dueDate) return false
       const dueDate = new Date(todo.dueDate)
-      return dueDate >= today && dueDate < tomorrow
+      const isToday = dueDate >= today && dueDate < tomorrow
+      
+      // 分类筛选
+      if (selectedCategoryId && todo.categoryId !== selectedCategoryId) {
+        return false
+      }
+      
+      return isToday
     })
-  }, [todos])
+  }, [todos, selectedCategoryId])
+  
+  // 获取分类信息
+  const getCategoryById = (id: string): Category | undefined => {
+    return categories.find(c => c.id === id)
+  }
 
   // 按优先级排序的任务
   const prioritySortedTodos = useMemo(() => {
@@ -156,47 +188,60 @@ export default function DashboardPage() {
     weekday: 'long'
   })
 
-  const TodoItem = ({ todo }: { todo: Todo }) => (
-    <div className={cn(
-      'group flex items-start gap-3 p-4 rounded-2xl bg-white hover:bg-orange-50/50 transition-all',
-      todo.completed && 'opacity-60'
-    )}>
-      <button
-        onClick={() => handleToggle(todo)}
-        className={cn(
-          'flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
-          todo.completed ? 'bg-orange-400 border-orange-400' : 'border-gray-300 hover:border-orange-400'
-        )}
-      >
-        {todo.completed && <Check className="w-4 h-4 text-white" />}
-      </button>
-      <div className="flex-1 min-w-0">
-        <h3 className={cn('text-gray-800 font-medium', todo.completed && 'line-through text-gray-500')}>
-          {todo.title}
-        </h3>
-        <div className="flex items-center gap-2 mt-1 flex-wrap">
-          <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', priorityColors[todo.priority])}>
-            <Flag className="w-3 h-3 inline mr-1" />
-            {priorityLabels[todo.priority]}
-          </span>
-          {todo.dueDate && formatTime(todo.dueDate) && (
-            <span className="flex items-center gap-1 text-xs text-gray-500">
-              <Clock className="w-3 h-3" />
-              {formatTime(todo.dueDate)}
-            </span>
+  const TodoItem = ({ todo }: { todo: Todo }) => {
+    const category = todo.categoryId ? getCategoryById(todo.categoryId) : null
+    
+    return (
+      <div className={cn(
+        'group flex items-start gap-3 p-4 rounded-2xl bg-white hover:bg-orange-50/50 transition-all',
+        todo.completed && 'opacity-60'
+      )}>
+        <button
+          onClick={() => handleToggle(todo)}
+          className={cn(
+            'flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all',
+            todo.completed ? 'bg-orange-400 border-orange-400' : 'border-gray-300 hover:border-orange-400'
           )}
+        >
+          {todo.completed && <Check className="w-4 h-4 text-white" />}
+        </button>
+        <div className="flex-1 min-w-0">
+          <h3 className={cn('text-gray-800 font-medium', todo.completed && 'line-through text-gray-500')}>
+            {todo.title}
+          </h3>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', priorityColors[todo.priority])}>
+              <Flag className="w-3 h-3 inline mr-1" />
+              {priorityLabels[todo.priority]}
+            </span>
+            {category && (
+              <span 
+                className="px-2 py-0.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: `${category.color}20`, color: category.color }}
+              >
+                <Tag className="w-3 h-3 inline mr-1" />
+                {category.name}
+              </span>
+            )}
+            {todo.dueDate && formatTime(todo.dueDate) && (
+              <span className="flex items-center gap-1 text-xs text-gray-500">
+                <Clock className="w-3 h-3" />
+                {formatTime(todo.dueDate)}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => handleEditTodo(todo)} className="p-2 rounded-full hover:bg-orange-100 text-gray-500 hover:text-orange-500">
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button onClick={() => handleDelete(todo)} className="p-2 rounded-full hover:bg-red-100 text-gray-500 hover:text-red-500">
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <button onClick={() => handleEditTodo(todo)} className="p-2 rounded-full hover:bg-orange-100 text-gray-500 hover:text-orange-500">
-          <Edit2 className="w-4 h-4" />
-        </button>
-        <button onClick={() => handleDelete(todo)} className="p-2 rounded-full hover:bg-red-100 text-gray-500 hover:text-red-500">
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-28">
@@ -215,6 +260,55 @@ export default function DashboardPage() {
         <p className="text-base text-gray-500 mt-3">
           共 {todayTodos.length} 个任务，已完成 {completedTodos.length} 个
         </p>
+      </div>
+
+      {/* 分类筛选 */}
+      <div className="mb-6">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-gray-500 mr-1">
+            <Tag className="w-4 h-4 inline mr-1" />
+            分类:
+          </span>
+          <button
+            onClick={() => setSelectedCategoryId(null)}
+            className={cn(
+              'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
+              selectedCategoryId === null
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            )}
+          >
+            全部
+          </button>
+          {categories.map(category => (
+            <button
+              key={category.id}
+              onClick={() => setSelectedCategoryId(category.id)}
+              className={cn(
+                'px-3 py-1.5 rounded-full text-sm font-medium transition-colors flex items-center gap-1',
+                selectedCategoryId === category.id
+                  ? 'text-white'
+                  : 'hover:opacity-80'
+              )}
+              style={{
+                backgroundColor: selectedCategoryId === category.id ? category.color : `${category.color}20`,
+                color: selectedCategoryId === category.id ? 'white' : category.color
+              }}
+            >
+              {category.name}
+              {selectedCategoryId === category.id && (
+                <X className="w-3 h-3" onClick={(e) => { e.stopPropagation(); setSelectedCategoryId(null) }} />
+              )}
+            </button>
+          ))}
+          <button
+            onClick={() => setIsCategoryManagerOpen(true)}
+            className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center gap-1"
+          >
+            <Plus className="w-3 h-3" />
+            管理分类
+          </button>
+        </div>
       </div>
 
       {/* 并排显示：按优先级 & 按时间 */}
@@ -324,6 +418,12 @@ export default function DashboardPage() {
         isOpen={isEditorOpen}
         onClose={handleCloseEditor}
         todo={editingTodo}
+      />
+
+      {/* 分类管理 */}
+      <CategoryManager
+        isOpen={isCategoryManagerOpen}
+        onClose={() => setIsCategoryManagerOpen(false)}
       />
     </div>
   )
