@@ -15,18 +15,21 @@ const navItems = [
 export default function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const { user } = useStore()
+  const { user, themeColor } = useStore()
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 pb-safe">
       <div className="max-w-md mx-auto flex items-center justify-around py-2">
         {/* 积分显示 */}
-        <div className="flex items-center gap-1 px-3 py-1.5 bg-orange-100 rounded-full">
-          <Coins className="w-4 h-4 text-orange-500" />
-          <span className="text-sm font-medium text-orange-600">
+        <div 
+          className="flex items-center gap-1 px-3 py-1.5 rounded-full"
+          style={{ backgroundColor: `${themeColor.primary}20` }}
+        >
+          <Coins className="w-4 h-4" style={{ color: themeColor.primary }} />
+          <span className="text-sm font-medium" style={{ color: themeColor.accent }}>
             积分余额
           </span>
-          <span className="text-sm font-bold text-orange-600 ml-1">
+          <span className="text-sm font-bold ml-1" style={{ color: themeColor.accent }}>
             {user?.points || 0}
           </span>
         </div>
@@ -42,8 +45,9 @@ export default function BottomNav() {
               onClick={() => router.push(item.path)}
               className={cn(
                 'flex flex-col items-center gap-1 px-4 py-2 rounded-xl transition-colors',
-                isActive ? 'text-orange-500' : 'text-gray-400 hover:text-gray-600'
+                !isActive && 'text-gray-400 hover:text-gray-600'
               )}
+              style={isActive ? { color: themeColor.primary } : undefined}
             >
               <Icon className="w-6 h-6" />
               <span className="text-xs">{item.label}</span>

@@ -1,18 +1,20 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { User, Settings, HelpCircle, LogOut, ChevronRight, MessageSquare } from 'lucide-react'
+import { User, Settings, HelpCircle, LogOut, ChevronRight, MessageSquare, Palette } from 'lucide-react'
 import Card from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Mascot from '@/components/Mascot'
 import FeedbackForm from '@/components/FeedbackForm'
+import ThemeSelector from '@/components/ThemeSelector'
 import { useStore } from '@/store/useStore'
 import { useState } from 'react'
 
 export default function ProfilePage() {
   const router = useRouter()
-  const { user, logout, todos } = useStore()
+  const { user, logout, todos, themeColor } = useStore()
   const [showFeedback, setShowFeedback] = useState(false)
+  const [showThemeSelector, setShowThemeSelector] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -80,6 +82,24 @@ export default function ProfilePage() {
           <ChevronRight className="w-5 h-5 text-gray-400" />
         </button>
 
+        <button 
+          onClick={() => setShowThemeSelector(true)}
+          className="w-full flex items-center justify-between py-4 px-2 hover:bg-orange-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Palette className="w-5 h-5" style={{ color: themeColor.primary }} />
+            <span className="text-gray-700">主题颜色</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-5 h-5 rounded-full"
+              style={{ backgroundColor: themeColor.primary }}
+            />
+            <span className="text-sm text-gray-500">{themeColor.name}</span>
+            <ChevronRight className="w-5 h-5 text-gray-400" />
+          </div>
+        </button>
+
         <button className="w-full flex items-center justify-between py-4 px-2 hover:bg-orange-50 transition-colors">
           <div className="flex items-center gap-3">
             <Settings className="w-5 h-5 text-gray-500" />
@@ -124,6 +144,12 @@ export default function ProfilePage() {
       <p className="text-center text-xs text-gray-400 mt-6">
         todoList v1.0.0
       </p>
+
+      {/* 主题选择器 */}
+      <ThemeSelector
+        isOpen={showThemeSelector}
+        onClose={() => setShowThemeSelector(false)}
+      />
     </div>
   )
 }

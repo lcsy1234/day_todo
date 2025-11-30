@@ -3,6 +3,14 @@
 :root {
   --background: #FFF5EB;
   --foreground: #171717;
+  
+  /* 主题色变量 - 默认橙色 */
+  --color-primary: #FF9500;
+  --color-primary-light: #FFF7ED;
+  --color-primary-accent: #EA580C;
+  --color-primary-10: #FF95001A;
+  --color-primary-20: #FF950033;
+  --color-primary-50: #FF950080;
 }
 
 @theme inline {

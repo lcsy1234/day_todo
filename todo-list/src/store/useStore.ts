@@ -29,18 +29,27 @@ export interface User {
   points: number
 }
 
+export interface ThemeColor {
+  name: string
+  primary: string
+  light: string
+  accent: string
+}
+
 interface AppState {
   user: User | null
   todos: Todo[]
   categories: Category[]
   isLoading: boolean
   hasHydrated: boolean
+  themeColor: ThemeColor
   sortBy: 'priority' | 'dueDate' | 'createdAt' | 'title'
   sortOrder: 'asc' | 'desc'
   filterCategory: string | null
   
   // Actions
   setHasHydrated: (state: boolean) => void
+  setThemeColor: (color: ThemeColor) => void
   setUser: (user: User | null) => void
   setTodos: (todos: Todo[]) => void
   addTodo: (todo: Todo) => void
@@ -58,6 +67,14 @@ interface AppState {
   logout: () => void
 }
 
+// 默认主题色
+const defaultTheme: ThemeColor = {
+  name: '活力橙',
+  primary: '#FF9500',
+  light: '#FFF7ED',
+  accent: '#EA580C'
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set) => ({
@@ -66,11 +83,13 @@ export const useStore = create<AppState>()(
       categories: [],
       isLoading: false,
       hasHydrated: false,
+      themeColor: defaultTheme,
       sortBy: 'createdAt',
       sortOrder: 'desc',
       filterCategory: null,
 
       setHasHydrated: (state) => set({ hasHydrated: state }),
+      setThemeColor: (themeColor) => set({ themeColor }),
       setUser: (user) => set({ user }),
       
       setTodos: (todos) => set({ todos }),
@@ -124,6 +143,7 @@ export const useStore = create<AppState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         user: state.user,
+        themeColor: state.themeColor,
         sortBy: state.sortBy,
         sortOrder: state.sortOrder
       }),
