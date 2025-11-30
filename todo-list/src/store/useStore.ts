@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { persist, createJSONStorage } from 'zustand/middleware'
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
@@ -34,11 +34,13 @@ interface AppState {
   todos: Todo[]
   categories: Category[]
   isLoading: boolean
+  hasHydrated: boolean
   sortBy: 'priority' | 'dueDate' | 'createdAt' | 'title'
   sortOrder: 'asc' | 'desc'
   filterCategory: string | null
   
   // Actions
+  setHasHydrated: (state: boolean) => void
   setUser: (user: User | null) => void
   setTodos: (todos: Todo[]) => void
   addTodo: (todo: Todo) => void
@@ -63,10 +65,12 @@ export const useStore = create<AppState>()(
       todos: [],
       categories: [],
       isLoading: false,
+      hasHydrated: false,
       sortBy: 'createdAt',
       sortOrder: 'desc',
       filterCategory: null,
 
+      setHasHydrated: (state) => set({ hasHydrated: state }),
       setUser: (user) => set({ user }),
       
       setTodos: (todos) => set({ todos }),
@@ -117,11 +121,15 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'todo-storage',
+      storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({ 
         user: state.user,
         sortBy: state.sortBy,
         sortOrder: state.sortOrder
-      })
+      }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      }
     }
   )
 )

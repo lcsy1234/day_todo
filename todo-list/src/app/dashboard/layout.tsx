@@ -13,13 +13,28 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user } = useStore()
+  const { user, hasHydrated } = useStore()
 
   useEffect(() => {
-    if (!user) {
+    // 只有在 hydration 完成后才检查用户状态
+    if (hasHydrated && !user) {
       router.push('/')
     }
-  }, [user, router])
+  }, [user, hasHydrated, router])
+
+  // 等待 hydration 完成
+  if (!hasHydrated) {
+    return (
+      <Background>
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-orange-400 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-gray-500">加载中...</p>
+          </div>
+        </div>
+      </Background>
+    )
+  }
 
   if (!user) {
     return null
