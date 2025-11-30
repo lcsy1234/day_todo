@@ -1,12 +1,13 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { MessageSquare, Calendar, User, Coins } from 'lucide-react'
+import { Home, List, Calendar, User, Coins } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useStore } from '@/store/useStore'
 
 const navItems = [
-  { id: 'chat', icon: MessageSquare, label: '任务', path: '/dashboard' },
+  { id: 'home', icon: Home, label: '首页', path: '/dashboard' },
+  { id: 'tasks', icon: List, label: '任务', path: '/dashboard/tasks' },
   { id: 'calendar', icon: Calendar, label: '日历', path: '/dashboard/calendar' },
   { id: 'profile', icon: User, label: '我的', path: '/dashboard/profile' }
 ]
