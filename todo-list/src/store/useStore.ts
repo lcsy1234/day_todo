@@ -69,7 +69,7 @@ interface AppState {
 
 // 默认主题色
 const defaultTheme: ThemeColor = {
-  name: '活力橙',
+  name: '修改默认主题色',
   primary: '#FF9500',
   light: '#FFF7ED',
   accent: '#EA580C'
