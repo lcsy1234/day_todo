@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { clearTokens } from '@/lib/api'
 
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 
@@ -136,7 +137,10 @@ export const useStore = create<AppState>()(
         user: state.user ? { ...state.user, points: state.user.points + points } : null
       })),
       
-      logout: () => set({ user: null, todos: [], categories: [] })
+      logout: () => {
+        clearTokens()
+        set({ user: null, todos: [], categories: [] })
+      }
     }),
     {
       name: 'todo-storage',

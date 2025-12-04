@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card'
 import Mascot from '@/components/Mascot'
 import { useStore } from '@/store/useStore'
 import { generateGuestId } from '@/lib/utils'
+import { saveAccessToken } from '@/lib/api'
 
 export default function LoginForm() {
   const router = useRouter()
@@ -41,9 +42,15 @@ export default function LoginForm() {
       })
 
       const data = await res.json()
+      console.log(data,'data')
 
       if (!res.ok) {
         throw new Error(data.error || '登录失败')
+      }
+
+      // 保存 access token（refresh token 由服务端通过 cookie 管理）
+      if (data.accessToken) {
+        saveAccessToken(data.accessToken)
       }
 
       setUser(data.user)
@@ -94,6 +101,11 @@ export default function LoginForm() {
 
       if (!res.ok) {
         throw new Error(data.error || '注册失败')
+      }
+
+      // 保存 access token（refresh token 由服务端通过 cookie 管理）
+      if (data.accessToken) {
+        saveAccessToken(data.accessToken)
       }
 
       setUser(data.user)

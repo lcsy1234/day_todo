@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { authenticateRequest } from '@/lib/auth'
 
 // 获取所有待办事项
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
+    // JWT 鉴权
+    const user = authenticateRequest(request)
+    if (!user) {
       return NextResponse.json(
-        { error: '用户ID不能为空' },
-        { status: 400 }
+        { error: '未授权，请先登录', code: 'UNAUTHORIZED' },
+        { status: 401 }
       )
     }
 
     const todos = await prisma.todo.findMany({
-      where: { userId },
+      where: { userId: user.userId },
       include: { category: true },
       orderBy: { createdAt: 'desc' }
     })
@@ -46,11 +46,20 @@ export async function GET(request: NextRequest) {
 // 创建待办事项
 export async function POST(request: NextRequest) {
   try {
-    const { title, description, priority, dueDate, categoryId, userId } = await request.json()
-
-    if (!title || !userId) {
+    // JWT 鉴权
+    const user = authenticateRequest(request)
+    if (!user) {
       return NextResponse.json(
-        { error: '标题和用户ID不能为空' },
+        { error: '未授权，请先登录', code: 'UNAUTHORIZED' },
+        { status: 401 }
+      )
+    }
+
+    const { title, description, priority, dueDate, categoryId } = await request.json()
+
+    if (!title) {
+      return NextResponse.json(
+        { error: '标题不能为空' },
         { status: 400 }
       )
     }
@@ -62,14 +71,14 @@ export async function POST(request: NextRequest) {
         priority: priority || 'MEDIUM',
         dueDate: dueDate ? new Date(dueDate) : null,
         categoryId,
-        userId
+        userId: user.userId
       },
       include: { category: true }
     })
 
     // 增加用户积分
     await prisma.user.update({
-      where: { id: userId },
+      where: { id: user.userId },
       data: { points: { increment: 5 } }
     })
 

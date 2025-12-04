@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
+import { generateTokens, getRefreshTokenExpiry } from '@/lib/jwt'
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,15 +65,44 @@ export async function POST(request: NextRequest) {
       where: { userId: user.id }
     })
 
-    return NextResponse.json({
+    // 生成双 Token
+    const { accessToken, refreshToken } = generateTokens({
+      userId: user.id,
+      name: user.name || undefined,
+      isGuest: false
+    })
+
+    // 将 Refresh Token 存入数据库
+    await prisma.refreshToken.create({
+      data: {
+        token: refreshToken,
+        userId: user.id,
+        expiresAt: getRefreshTokenExpiry()
+      }
+    })
+
+    // 创建响应
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         isGuest: false,
         points: user.points
       },
+      accessToken,
       categories
     })
+
+    // 将 Refresh Token 设置到 HttpOnly Cookie
+    response.cookies.set('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 // 7天
+    })
+
+    return response
   } catch (error) {
     console.error('Register error:', error)
     return NextResponse.json(

@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Background from '@/components/Background'
 import BottomNav from '@/components/BottomNav'
 import Mascot from '@/components/Mascot'
 import { useStore } from '@/store/useStore'
+import { initAuth } from '@/lib/api'
 
 export default function DashboardLayout({
   children
@@ -13,7 +14,23 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { user, hasHydrated, themeColor } = useStore()
+  const { user, hasHydrated, themeColor, logout } = useStore()
+  const [isAuthReady, setIsAuthReady] = useState(false)
+
+  // 页面加载时初始化认证状态（从 refresh token 恢复 access token）
+  useEffect(() => {
+    if (hasHydrated && user) {
+      initAuth().then((success) => {
+        if (success) {
+          setIsAuthReady(true)
+        } else {
+          // refresh token 无效，登出
+          logout()
+          router.push('/')
+        }
+      })
+    }
+  }, [hasHydrated, user, logout, router])
 
   useEffect(() => {
     // 只有在 hydration 完成后才检查用户状态
@@ -22,8 +39,19 @@ export default function DashboardLayout({
     }
   }, [user, hasHydrated, router])
 
-  // 等待 hydration 完成
-  if (!hasHydrated) {
+  // 监听 token 刷新失败事件，自动登出
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      logout()
+      router.push('/')
+    }
+
+    window.addEventListener('auth:logout', handleAuthLogout)
+    return () => window.removeEventListener('auth:logout', handleAuthLogout)
+  }, [logout, router])
+
+  // 等待 hydration 和认证初始化完成
+  if (!hasHydrated || (user && !isAuthReady)) {
     return (
       <Background>
         <div className="min-h-screen flex items-center justify-center">
